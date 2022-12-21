@@ -1,0 +1,26 @@
+{
+  "name": "coinbase-pro-websocket-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RafaelDe-Leon/Coinbase-Pro-Websocket-API.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RafaelDe-Leon/Coinbase-Pro-Websocket-API/issues"
+  },
+  "homepage": "https://github.com/RafaelDe-Leon/Coinbase-Pro-Websocket-API#readme",
+  "dependencies": {
+    "ws": "^8.11.0"
+  },
+  "optionalDependencies": {
+    "utf-8-validate": "^5.0.10"
+  }
+}
