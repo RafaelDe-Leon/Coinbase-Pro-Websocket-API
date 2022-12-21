@@ -31,26 +31,31 @@ const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com')
 //   })
 // })
 
-let message = {
-  type: 'subscribe',
-  product_ids: ['ETH-USD'],
-  channels: [
-    'level2',
-    'heartbeat',
-    {
-      name: 'ticker',
-      product_ids: ['ETH-BTC'],
-    },
-  ],
-}
-let jsonMsg = JSON.stringify(message)
-
 ws.on('open', function open() {
+  let message = {
+    type: 'subscribe',
+    product_ids: ['BTC-USD'],
+    channels: [
+      {
+        name: 'ticker',
+      },
+    ],
+  }
+  let jsonMsg = JSON.stringify(message)
   ws.send(jsonMsg)
 })
 
-ws.on('message', function message(data) {
-  console.log('received: %s', data)
+ws.on('message', function message(response) {
+  let data = JSON.parse(response)
+  // only show data from matching ticker name
+  if (data.type !== 'ticker') {
+    return
+  }
+
+  // checks if product id matches what we are looking for
+  if (data.product_id === 'BTC-USD') {
+    console.log('BTC Price: ' + data.price)
+  }
 })
 
 // server.listen(8080)

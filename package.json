@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/RafaelDe-Leon/Coinbase-Pro-Websocket-API#readme",
   "dependencies": {
+    "request": "^2.88.2",
     "ws": "^8.11.0"
   },
   "optionalDependencies": {
