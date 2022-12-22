@@ -37,10 +37,9 @@ ws.on('message', function message(response) {
   }
 })
 
-// server.listen(8080)
-
 // matches
-// <>: price view.
-// <>: matches view.
-// <>: unsubscribe symbol.
-// <>: price view.
+// ${coin-USD}: price view.
+// ${coin-USD}: matches view.
+// #{coin-USD} u: unsubscribe symbol.
+// system: system status of subscribed coins atm
+// system <number>: change refresh interval in milliseconds
