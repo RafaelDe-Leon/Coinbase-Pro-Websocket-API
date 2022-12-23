@@ -1,4 +1,4 @@
-const WebSocket = require('ws')
+const WebSocket = require("ws")
 
 // matches
 // ${coin-USD}: price view.
@@ -9,142 +9,130 @@ const WebSocket = require('ws')
 
 const wss = new WebSocket.Server({ port: 8080 })
 
-// request data
-let requestData = {
-  type: 'subscribe',
-  product_ids: ['ETH-USD'],
-  channels: [
-    'level2',
-    'heartbeat',
-    {
-      name: 'ticker',
-      product_ids: ['ETH-USD'],
-    },
-  ],
+const supportedPairs = ["BTC-USD", "ETH-USD", "XRP-USD", "LTC-USD"]
+
+const commandPairs = ["SYSTEM", "QUIT"]
+let subscriptions = []
+let stopLogging = false
+
+const subscribeMessage = ticker => {
+  return {
+    type: "subscribe",
+    product_ids: [ticker],
+    channels: [
+      "level2",
+      "heartbeat",
+      {
+        name: "ticker",
+        product_ids: [ticker],
+      },
+    ],
+  }
 }
 
-let statusData = {
-  type: 'subscribe',
-  channels: [{ name: 'status' }],
+const unsubscribeMessage = ticker => {
+  return {
+    type: "unsubscribe",
+    product_ids: [ticker],
+    channels: [
+      "level2",
+      "heartbeat",
+      {
+        name: "ticker",
+        product_ids: [ticker],
+      },
+    ],
+  }
 }
 
-wss.on('connection', function connection(ws) {
-  console.log('connected to localhost')
-  ws.on('message', function incoming(message) {
+const statusMessage = () => {
+  return {
+    type: "subscriptions",
+    product_ids: ["ETH-USD", "BTC-USD"],
+    channels: [{ name: "status" }],
+  }
+}
+
+wss.on("connection", function connection(ws) {
+  console.log("connected to localhost")
+  ws.on("message", function incoming(message) {
     // read the message to get the data from client
-    let readData = message.toString('utf8').toUpperCase()
+    let readData = message.toString("utf8").toUpperCase()
 
     console.log(readData)
 
-    const myArray = readData.split(' ')
+    const [ticker, command] = readData.split(" ")
 
-    // function handleString(str1, str2) {
-    //   switch (str1) {
-    //     case `${myArray[0]}`:
-    //       switch (str2) {
-    //         case 'U':
-    //           let unsub = JSON.parse(JSON.stringify(requestData)) // make a deep copy of request data
-    //           unsub.type = 'unsubscribe'
-    //           unsub.product_ids = [`${myArray[0]}`]
-    //           unsub.channels[2].product_ids = [`${myArray[0]}`]
+    if (!supportedPairs.includes(ticker)) {
+      throw new Error(`${ticker} is not supported)`)
+    }
 
-    //           let unubMSg = JSON.stringify(unsub)
-    //           console.log(unubMSg)
-    //           client.send(unubMSg)
-    //           break
-    //         default:
-    //           break
-    //       }
-    //       let sub = JSON.parse(JSON.stringify(requestData)) // make a deep copy of request data
-
-    //       sub.type = 'subscribe'
-    //       sub.product_ids = [`${myArray[0]}`]
-    //       sub.channels[2].product_ids = [`${myArray[0]}`]
-
-    //       let subMsg = JSON.stringify(sub)
-    //       console.log(sub.channels[2])
-    //       client.send(subMsg)
-    //       break
-
-    //     case 'SYSTEM':
-    //       let status = JSON.parse(JSON.stringify(statusData)) // make a deep copy of request data
-
-    //       let jsonStatus = JSON.stringify(status)
-    //       client.send(jsonStatus)
-
-    //       break
-    //     default:
-    //       console.log('try again')
-    //   }
+    // if (!commandPairs.includes(ticker)) {
+    //   throw new Error(`${ticker} is not supported)`)
     // }
 
     // create a WebSocket client and connect to the coinbase's api
-    const client = new WebSocket('wss://ws-feed.exchange.coinbase.com')
+    const client = new WebSocket("wss://ws-feed.exchange.coinbase.com")
 
-    client.on('open', function open() {
+    client.on("open", function open() {
       // send the parameters to the third-party
       // handleString(myArray[0], myArray[1])
 
-      if (myArray[0] === 'ETH-USD' && myArray.length <= 1) {
-        let sub = JSON.parse(JSON.stringify(requestData)) // make a deep copy of request data
-
-        sub.type = 'subscribe'
-        sub.product_ids = [`${myArray[0]}`]
-        sub.channels[2].product_ids = [`${myArray[0]}`]
-
-        let subMsg = JSON.stringify(sub)
-        console.log(sub.channels[2])
+      if (ticker !== undefined && supportedPairs.includes(ticker)) {
+        let subMsg = JSON.stringify(subscribeMessage(ticker))
+        // stopLogging = false
+        console.log(subMsg)
         client.send(subMsg)
+        subscriptions.push(ticker)
+        console.log(subscriptions)
       }
 
-      if (myArray[0] === 'BTC-USD' && myArray.length <= 1) {
-        let sub = JSON.parse(JSON.stringify(requestData)) // make a deep copy of request data
-
-        sub.type = 'subscribe'
-        sub.product_ids = [`${myArray[0]}`]
-        sub.channels[2].product_ids = [`${myArray[0]}`]
-
-        let subMsg = JSON.stringify(sub)
-        console.log(sub.channels[2])
-        client.send(subMsg)
+      if (command !== undefined && command === "U") {
+        console.log(JSON.stringify(unsubscribeMessage(ticker)))
+        let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
+        // stopLogging = true
+        client.send(unsubMsg)
+        subscriptions = subscriptions.filter(item => item !== ticker)
+        console.log("this is unsub pop", subscriptions)
       }
 
-      if (
-        myArray[0] === 'ETH-USD' &&
-        myArray.length >= 1 &&
-        myArray[1] === 'U'
-      ) {
-        let unsub = {
-          type: 'unsubscribe',
-          channels: ['heartbeat'],
-        }
+      if (ticker !== undefined && ticker === "SYSTEM") {
+        let statusMsg = JSON.stringify(statusMessage())
+        client.send(statusMsg)
+      }
 
-        // unsub.type = 'unsubscribe'
-        // unsub.product_ids = [`${myArray[0]}`]
-        // unsub.channels[2].product_ids = [`${myArray[0]}`]
-
-        let subMsg = JSON.stringify(unsub)
-        client.send(subMsg)
+      if (ticker !== undefined && ticker === "QUIT") {
+        client.close(1000, "Closing the connection")
+        console.log("closing")
+        wss.close()
       }
     })
-
-    client.on('message', function incoming(response) {
+    client.on("message", function incoming(response) {
       let data = JSON.parse(response)
-
-      if (data.type === 'l2update') {
-        return
+      // console.log(data)
+      if (stopLogging) {
+        if (data.type === "subscriptions") {
+          console.log(data)
+          // ws.send(`Sucessfully unsubbed from ${}${data.type}`)
+        }
       }
 
-      if (data.type === 'ticker') {
-        condition = true
-        console.log(data.price)
+      if (data.type === "status") {
+        console.log(data)
       }
 
-      if (data.type === 'subscriptions') {
-        console.log(data.type, data.channels)
+      if (stopLogging === false && data.type === "ticker") {
+        console.log(`${data.product_id}  ${data.price}`)
+        ws.send(`${data.product_id}  ${data.price}`)
       }
+      // ws.send(data.product_id)
     })
   })
+})
+
+wss.on("close", function () {
+  console.log("exiting")
+  process.exitCode = 1
 })
 
 // {

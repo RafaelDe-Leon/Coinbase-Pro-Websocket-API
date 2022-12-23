@@ -1,0 +1,102 @@
+subscribe to product
+
+{
+    "type": "subscribe",
+    "product_ids": [
+        "ETH-USD"
+    ],
+    "channels": [
+        "level2",
+        "heartbeat",
+        {
+            "name": "ticker",
+            "product_ids": [
+                "ETH-USD"
+            ]
+        }
+    ]
+}
+
+
+unsubscribe
+
+{
+    "type": "unsubscribe",
+    "product_ids": [
+        "ETH-USD"
+    ],
+    "channels": [
+        "level2",
+        "heartbeat",
+        {
+            "name": "ticker",
+            "product_ids": [
+                "ETH-USD"
+            ]
+        }
+    ]
+}
+
+
+
+
+the optionals are:
+- level2 - makes the ticker go fast
+
+
+channels:
+- ticker shows prices and stuff like that
+
+example of ticker response when subscribed
+{
+  type: 'ticker',
+  sequence: 40206116300,
+  product_id: 'ETH-USD',
+  price: '1219.15',
+  open_24h: '1189.26',
+  volume_24h: '313831.39976691',
+  low_24h: '1188.43',
+  high_24h: '1238.76',
+  volume_30d: '8846100.77215610',
+  best_bid: '1219.05',
+  best_bid_size: '1.12031089',
+  best_ask: '1219.17',
+  best_ask_size: '8.26469463',
+  side: 'buy',
+  time: '2022-12-23T18:26:47.507574Z',
+  trade_id: 403247666,
+  last_size: '4.58563308'
+}
+
+
+- heartbeat - shows last trade id and other information example down below
+
+{
+  "type":"heartbeat",
+  "last_trade_id":403250799,
+  "product_id":"ETH-USD",
+  "sequence":40206304989,
+  "time":"2022-12-23T18:40:39.308424Z"
+}
+
+
+
+request from client side
+
+ETH-USD: ask for level2 updates from coinbase by default, if match view is display it must not 
+show that view anymore and start showing price view.
+
+ETH-USD M: this will show a order blotter that will display
+- timestamp
+- product
+- trade size
+- price 
+
+if price view was active it must now show the match view only
+
+
+ETH-USD U: this will unsub from the current symbol in that list that the user is currently looking at
+
+system: show system status of which instruments are subscribed at the moment
+
+system <number>: change the refresh interval of the current view to another value in milliseconds
