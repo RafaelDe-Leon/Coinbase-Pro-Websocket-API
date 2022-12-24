@@ -1,7 +1,5 @@
 ## Coinbase Pro Websocket API
 
-# Middleware Project
-
 This project is a middleware between a user connected to localhost and the Coinbase WebSocket API. It receives requests from the user and sends them to Coinbase, and returns the response from Coinbase back to the user.
 
 ## Prerequisites

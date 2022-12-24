@@ -231,7 +231,6 @@ wss.on('connection', function connection(ws, req) {
           return
           // ws.send(data.product_id, data.price)
         } else if (matchViewArray.includes(ticker) && data.type == 'ticker') {
-          console.log(ticker)
           console.log(data.time, data.product_id, data.last_size, data.price)
           ws.send(
             `Date and Time: ${data.time} 
