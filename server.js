@@ -103,6 +103,7 @@ wss.on("connection", function connection(ws) {
         console.log(subscriptions)
         console.log("subscribed ran")
         client.send(subMsg)
+        ws.send(`succesfully subscribed to ${ticker}`)
       }
 
       // unsubscribe
@@ -117,6 +118,7 @@ wss.on("connection", function connection(ws) {
         client.send(unsubMsg)
         subscriptions = subscriptions.filter(item => item !== ticker)
         console.log("unsub ran")
+        ws.send(`succesfully unsubbed from ${ticker}`)
       }
 
       if (ticker !== undefined && ticker === "SYSTEM") {
@@ -136,7 +138,6 @@ wss.on("connection", function connection(ws) {
 
     client.on("message", function incoming(response) {
       let data = JSON.parse(response)
-      // console.log(data)
       if (stopLogging) {
       }
 
