@@ -11,5 +11,7 @@ This project is a middleware between a user connected to localhost and the Coinb
 
 ## Installation
 
-Clone the repository:
-<code>https://github.com/RafaelDe-Leon/Coinbase-Pro-Websocket-API.git<code>
+1. Clone the repository:
+   <code>https://github.com/RafaelDe-Leon/Coinbase-Pro-Websocket-API.git</code>
+
+2. Install the dependencies: <code> npm install </code>
