@@ -1,4 +1,4 @@
-const WebSocket = require("ws")
+const WebSocket = require('ws')
 
 // matches
 // ${coin-USD}: price view.
@@ -10,12 +10,12 @@ const WebSocket = require("ws")
 const wss = new WebSocket.Server({ port: 8080 })
 
 const supportedPairs = [
-  "BTC-USD",
-  "ETH-USD",
-  "XRP-USD",
-  "LTC-USD",
-  "SYSTEM",
-  "QUIT",
+  'BTC-USD',
+  'ETH-USD',
+  'XRP-USD',
+  'LTC-USD',
+  'SYSTEM',
+  'QUIT',
 ]
 
 let subscriptions = []
@@ -27,13 +27,13 @@ let matchesView = false
 
 const subscribeMessage = ticker => {
   return {
-    type: "subscribe",
+    type: 'subscribe',
     product_ids: [ticker],
     channels: [
-      "level2",
-      "heartbeat",
+      'level2',
+      'heartbeat',
       {
-        name: "ticker",
+        name: 'ticker',
         product_ids: [ticker],
       },
     ],
@@ -42,13 +42,13 @@ const subscribeMessage = ticker => {
 
 const unsubscribeMessage = ticker => {
   return {
-    type: "unsubscribe",
+    type: 'unsubscribe',
     product_ids: [ticker],
     channels: [
-      "level2",
-      "heartbeat",
+      'level2',
+      'heartbeat',
       {
-        name: "ticker",
+        name: 'ticker',
         product_ids: [ticker],
       },
     ],
@@ -57,19 +57,9 @@ const unsubscribeMessage = ticker => {
 
 const statusMessage = () => {
   return {
-    type: "subscriptions",
-    product_ids: ["ETH-USD", "BTC-USD"],
-    channels: [{ name: "status" }],
-  }
-}
-
-const addSubbed = ticker => {
-  if (subscriptions.includes(ticker)) {
-    console.log(`${ticker} has been already subbed, please unsub first`)
-    return
-  } else {
-    subscriptions.push(ticker)
-    console.log(`${ticker} has successfully been subbed`)
+    type: 'subscriptions',
+    product_ids: ['ETH-USD', 'BTC-USD'],
+    channels: [{ name: 'status' }],
   }
 }
 
@@ -80,18 +70,29 @@ const emptyAndAdd = (arr, element) => {
 
 const connections = {}
 
-wss.on("connection", function connection(ws, req) {
-  const id = req.headers["sec-websocket-key"]
+wss.on('connection', function connection(ws, req) {
+  const id = req.headers['sec-websocket-key'] // get the key from header and assign it to id
   connections[id] = ws
   console.log(`New connection with id ${id}`)
   ws.send(`New connection with id ${id}`)
-  ws.send("Please input one of these symbols to start ETH-USD, BTC-USD")
-  ws.on("message", function incoming(message) {
+  ws.send('Please input one of these symbols to start ETH-USD, BTC-USD')
+  ws.on('message', function incoming(message) {
     // read the message to get the data from client
-    let readData = message.toString("utf8").toUpperCase()
+    let readData = message.toString('utf8').toUpperCase()
 
-    const [ticker, command] = readData.split(" ")
-    // connections[id].send(`hi, you send me a message: ${message}`)
+    const [ticker, command] = readData.split(' ')
+
+    const addSubbed = ticker => {
+      if (subscriptions.includes(ticker)) {
+        console.log(`${ticker} has been already subbed, please unsub first`)
+        ws.send(`${ticker} has been already subbed, please unsub first`)
+        return
+      } else {
+        subscriptions.push(ticker)
+        console.log(`${ticker} has successfully been subbed`)
+        ws.send(`${ticker} has successfully been subbed`)
+      }
+    }
 
     // only accept these pairs from the list
     if (!supportedPairs.includes(ticker)) {
@@ -99,9 +100,9 @@ wss.on("connection", function connection(ws, req) {
     }
 
     // create a WebSocket client and connect to the coinbase's api
-    const cbWebSocket = new WebSocket("wss://ws-feed.exchange.coinbase.com")
+    const cbWebSocket = new WebSocket('wss://ws-feed.exchange.coinbase.com')
 
-    cbWebSocket.on("open", function open() {
+    cbWebSocket.on('open', function open() {
       // subscribe
       if (
         ticker !== undefined &&
@@ -110,21 +111,41 @@ wss.on("connection", function connection(ws, req) {
       ) {
         let subMsg = JSON.stringify(subscribeMessage(ticker))
 
+        if (subscriptions.includes(ticker)) {
+          console.log(`Viewing ${ticker} prices`)
+          ws.send(`Viewing ${ticker} prices`)
+        }
         matchesView = false
         systemLog = false
         subscriptionLog = true
         emptyAndAdd(matchViewArray) // empties matchArray
         addSubbed(ticker)
         cbWebSocket.send(subMsg)
-        ws.send(`succesfully subscribed to ${ticker}`)
       }
 
-      // unsubscribe
+      // trying to add another if statement to check if command = number
+      // else if (
+      //   ticker !== undefined &&
+      //   supportedPairs.includes(ticker) &&
+      //   command === '1'
+      // ) {
+      //   let subMsg = JSON.stringify(subscribeMessage(ticker, ''))
+
+      //   matchesView = false
+      //   systemLog = false
+      //   subscriptionLog = true
+      //   emptyAndAdd(matchViewArray) // empties matchArray
+      //   addSubbed(ticker)
+      //   cbWebSocket.send(subMsg)
+      //   ws.send(`succesfully subscribed to ${ticker}`)
+      // }
+
       if (
         command !== undefined &&
-        command === "U" &&
+        command === 'U' &&
         subscriptions.includes(ticker)
       ) {
+        // unsubscribe
         console.log(JSON.stringify(unsubscribeMessage(ticker)))
         let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
         matchesView = false
@@ -138,27 +159,18 @@ wss.on("connection", function connection(ws, req) {
       // matches view
       if (
         command !== undefined &&
-        command === "M" &&
+        command === 'M' &&
         subscriptions.includes(ticker)
       ) {
-        // console.log(JSON.stringify(unsubscribeMessage(ticker)))
-        // let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
+        ws.send(`switched to view ${ticker} in details`)
         subscriptionLog = false
         systemLog = false
         matchesView = true
 
-        // matchViewArray = []
-        // matchViewArray.push(ticker)
-
         emptyAndAdd(matchViewArray, ticker)
-
-        // cbWebSocket.send(unsubMsg)
-        // subscriptions = subscriptions.filter(item => item !== ticker)
-
-        // ws.send(`succesfully unsubbed from ${ticker}`)
       }
 
-      if (ticker !== undefined && ticker === "SYSTEM") {
+      if (ticker !== undefined && ticker === 'SYSTEM') {
         let statusMsg = JSON.stringify(statusMessage())
         subscriptionLog = false
         systemLog = true
@@ -166,19 +178,27 @@ wss.on("connection", function connection(ws, req) {
         cbWebSocket.send(statusMsg)
       }
 
-      if (ticker !== undefined && ticker === "QUIT") {
+      // sysmtem and <number>
+      // if (ticker !== undefined && ticker === "SYSTEM" && command === ) {
+      //   let statusMsg = JSON.stringify(statusMessage())
+      //   subscriptionLog = false
+      //   systemLog = true
+
+      //   cbWebSocket.send(statusMsg)
+      // }
+
+      if (ticker !== undefined && ticker === 'QUIT') {
         // cbWebSocket.close(1000, "Closing the connection")
-        console.log("closing")
+        console.log('closing')
         connections[id].close()
         delete connections[id]
-        ws.send("Programmed Closed")
+        ws.send('Programmed Closed')
         ws.send(
-          "To receive new data, Please input the pair you want to connect"
+          'To receive new data, Please input the pair you want to connect'
         )
 
         if (Object.keys(connections).length === 0) {
-          console.log("Closing server in 5 secs")
-          // subscriptions = []
+          console.log('Closing server in 5 secs')
           // Close the server after 5 seconds
           setTimeout(() => {
             process.exit() // shuts down node if no connections
@@ -187,16 +207,16 @@ wss.on("connection", function connection(ws, req) {
       }
     })
 
-    cbWebSocket.on("message", function incoming(response) {
+    cbWebSocket.on('message', function incoming(response) {
       let data = JSON.parse(response)
 
       if (
         subscriptions.includes(ticker) &&
         subscriptionLog === true &&
-        data.type === "ticker"
+        data.type === 'ticker'
       ) {
         console.log(data.product_id, data.price)
-        ws.send(`${data.product_id} ${data.price}`)
+        ws.send(`Symbol: ${data.product_id} Current Price: ${data.price}`)
       }
 
       if (systemLog === true) {
@@ -205,29 +225,26 @@ wss.on("connection", function connection(ws, req) {
       }
 
       if (matchesView === true) {
-        if (data.type === "l2update") {
+        if (data.type === 'l2update') {
           return
-        } else if (data.type === "hearbeat") {
+        } else if (data.type === 'hearbeat') {
           return
           // ws.send(data.product_id, data.price)
-        } else if (matchViewArray.includes(ticker) && data.type == "ticker") {
+        } else if (matchViewArray.includes(ticker) && data.type == 'ticker') {
           console.log(ticker)
           console.log(data.time, data.product_id, data.last_size, data.price)
           ws.send(
-            `${data.time} ${data.product_id} ${data.last_size} ${data.price}`
+            `Date and Time: ${data.time} 
+            Symbol: ${data.product_id} 
+            Last-Trade: ${data.last_size}
+            Current Price: ${data.price}`
           )
         }
       }
     })
 
-    cbWebSocket.on("close", () => {
+    cbWebSocket.on('close', () => {
       return
     })
-
-    // ws.on("close", () => {
-    //   console.log(`Connection with id ${id} closed`)
-    //   delete connections[id]
-    //   console.log(id)
-    // })
   })
 })
