@@ -78,14 +78,20 @@ const emptyAndAdd = (arr, element) => {
   arr.push(element)
 }
 
-wss.on("connection", function connection(ws) {
-  console.log("connected to localhost")
+const connections = {}
+
+wss.on("connection", function connection(ws, req) {
+  const id = req.headers["sec-websocket-key"]
+  connections[id] = ws
+  console.log(`New connection with id ${id}`)
+  ws.send(`New connection with id ${id}`)
   ws.send("Please input one of these symbols to start ETH-USD, BTC-USD")
   ws.on("message", function incoming(message) {
     // read the message to get the data from client
     let readData = message.toString("utf8").toUpperCase()
 
     const [ticker, command] = readData.split(" ")
+    // connections[id].send(`hi, you send me a message: ${message}`)
 
     // only accept these pairs from the list
     if (!supportedPairs.includes(ticker)) {
@@ -161,14 +167,23 @@ wss.on("connection", function connection(ws) {
       }
 
       if (ticker !== undefined && ticker === "QUIT") {
-        cbWebSocket.close(1000, "Closing the connection")
+        // cbWebSocket.close(1000, "Closing the connection")
         console.log("closing")
-        wss.close()
-        subscriptions = []
+        connections[id].close()
+        delete connections[id]
         ws.send("Programmed Closed")
         ws.send(
           "To receive new data, Please input the pair you want to connect"
         )
+
+        if (Object.keys(connections).length === 0) {
+          console.log("Closing server in 5 secs")
+          // subscriptions = []
+          // Close the server after 5 seconds
+          setTimeout(() => {
+            process.exit() // shuts down node if no connections
+          }, 5000)
+        }
       }
     })
 
@@ -204,10 +219,15 @@ wss.on("connection", function connection(ws) {
         }
       }
     })
+
+    cbWebSocket.on("close", () => {
+      return
+    })
+
+    // ws.on("close", () => {
+    //   console.log(`Connection with id ${id} closed`)
+    //   delete connections[id]
+    //   console.log(id)
+    // })
   })
 })
-
-// wss.on("close", function () {
-//   console.log("exiting")
-//   process.exitCode = 1
-// })
