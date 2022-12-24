@@ -20,7 +20,11 @@ const supportedPairs = [
 
 // const commandPairs = ["SYSTEM", "QUIT"]
 let subscriptions = []
-let stopLogging = false
+let matchViewArray = []
+
+let subscriptionLog = false
+let systemLog = false
+let matchesView = false
 
 const subscribeMessage = ticker => {
   return {
@@ -70,6 +74,16 @@ const addSubbed = ticker => {
   }
 }
 
+const emptyAndAdd = (arr, element) => {
+  arr.length = 0
+  arr.push(element)
+}
+
+const assignBoolean = (myVar, value) => {
+  myVar = value
+  return myVar
+}
+
 wss.on("connection", function connection(ws) {
   console.log("connected to localhost")
   ws.on("message", function incoming(message) {
@@ -97,11 +111,12 @@ wss.on("connection", function connection(ws) {
         command === undefined
       ) {
         let subMsg = JSON.stringify(subscribeMessage(ticker))
-        // stopLogging = false
-        console.log(subMsg)
+
+        matchesView = false
+        systemLog = false
+        subscriptionLog = true
+        emptyAndAdd(matchViewArray) // empties matchArray
         addSubbed(ticker)
-        console.log(subscriptions)
-        console.log("subscribed ran")
         cbWebSocket.send(subMsg)
         ws.send(`succesfully subscribed to ${ticker}`)
       }
@@ -114,15 +129,45 @@ wss.on("connection", function connection(ws) {
       ) {
         console.log(JSON.stringify(unsubscribeMessage(ticker)))
         let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
-        // stopLogging = true
+        matchesView = false
+
         cbWebSocket.send(unsubMsg)
         subscriptions = subscriptions.filter(item => item !== ticker)
         console.log("unsub ran")
         ws.send(`succesfully unsubbed from ${ticker}`)
       }
 
+      // matches view
+      if (
+        command !== undefined &&
+        command === "M" &&
+        subscriptions.includes(ticker)
+      ) {
+        // console.log(JSON.stringify(unsubscribeMessage(ticker)))
+        // let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
+        subscriptionLog = false
+        systemLog = false
+        matchesView = true
+
+        // matchViewArray = []
+        // matchViewArray.push(ticker)
+
+        emptyAndAdd(matchViewArray, ticker)
+
+        // cbWebSocket.send(unsubMsg)
+        // subscriptions = subscriptions.filter(item => item !== ticker)
+
+        // ws.send(`succesfully unsubbed from ${ticker}`)
+      }
+
       if (ticker !== undefined && ticker === "SYSTEM") {
         let statusMsg = JSON.stringify(statusMessage())
+        // subscriptionLog = false
+        // systemLog = true
+
+        assignBoolean(subscriptionLog, false)
+        assignBoolean(systemLog, true)
+
         cbWebSocket.send(statusMsg)
         console.log("system ran")
       }
@@ -138,23 +183,35 @@ wss.on("connection", function connection(ws) {
 
     cbWebSocket.on("message", function incoming(response) {
       let data = JSON.parse(response)
-      if (stopLogging) {
+
+      if (
+        subscriptions.includes(ticker) &&
+        subscriptionLog === true &&
+        data.type === "ticker"
+      ) {
+        console.log(data.product_id, data.price)
+        ws.send(`${data.product_id} ${data.price}`)
       }
 
-      if (data.type === "subscriptions") {
-        console.log(data.channels)
-
-        // ws.send(`Sucessfully unsubbed from ${}${data.type}`)
-      }
-      if (data.type === "status") {
+      if (systemLog === true) {
         console.log(data)
+        console.log(systemLog)
       }
 
-      if (stopLogging === false && data.type === "ticker") {
-        console.log(`${data.product_id}  ${data.price}`)
-        ws.send(`${data.product_id}  ${data.price}`)
+      if (matchesView === true) {
+        if (data.type === "l2update") {
+          return
+        } else if (data.type === "hearbeat") {
+          return
+          // ws.send(data.product_id, data.price)
+        } else if (matchViewArray.includes(ticker) && data.type == "ticker") {
+          console.log(ticker)
+          console.log(data.time, data.product_id, data.last_size, data.price)
+          ws.send(
+            `${data.time} ${data.product_id} ${data.last_size} ${data.price}`
+          )
+        }
       }
-      // ws.send(data.product_id)
     })
   })
 })
