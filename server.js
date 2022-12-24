@@ -18,7 +18,6 @@ const supportedPairs = [
   "QUIT",
 ]
 
-// const commandPairs = ["SYSTEM", "QUIT"]
 let subscriptions = []
 let matchViewArray = []
 
@@ -79,26 +78,19 @@ const emptyAndAdd = (arr, element) => {
   arr.push(element)
 }
 
-const assignBoolean = (myVar, value) => {
-  myVar = value
-  return myVar
-}
-
 wss.on("connection", function connection(ws) {
   console.log("connected to localhost")
+  ws.send("Please input one of these symbols to start ETH-USD, BTC-USD")
   ws.on("message", function incoming(message) {
     // read the message to get the data from client
     let readData = message.toString("utf8").toUpperCase()
 
     const [ticker, command] = readData.split(" ")
 
+    // only accept these pairs from the list
     if (!supportedPairs.includes(ticker)) {
       throw new Error(`${ticker} is not supported)`)
     }
-
-    // if (!commandPairs.includes(ticker)) {
-    //   throw new Error(`${ticker} is not supported)`)
-    // }
 
     // create a WebSocket client and connect to the coinbase's api
     const cbWebSocket = new WebSocket("wss://ws-feed.exchange.coinbase.com")
@@ -133,7 +125,7 @@ wss.on("connection", function connection(ws) {
 
         cbWebSocket.send(unsubMsg)
         subscriptions = subscriptions.filter(item => item !== ticker)
-        console.log("unsub ran")
+
         ws.send(`succesfully unsubbed from ${ticker}`)
       }
 
@@ -162,22 +154,21 @@ wss.on("connection", function connection(ws) {
 
       if (ticker !== undefined && ticker === "SYSTEM") {
         let statusMsg = JSON.stringify(statusMessage())
-        // subscriptionLog = false
-        // systemLog = true
-
-        assignBoolean(subscriptionLog, false)
-        assignBoolean(systemLog, true)
+        subscriptionLog = false
+        systemLog = true
 
         cbWebSocket.send(statusMsg)
-        console.log("system ran")
       }
 
       if (ticker !== undefined && ticker === "QUIT") {
         cbWebSocket.close(1000, "Closing the connection")
         console.log("closing")
         wss.close()
-        subscriptions = subscriptions.filter(item => item !== ticker)
-        console.log("quit ran")
+        subscriptions = []
+        ws.send("Programmed Closed")
+        ws.send(
+          "To receive new data, Please input the pair you want to connect"
+        )
       }
     })
 
