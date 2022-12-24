@@ -9,9 +9,16 @@ const WebSocket = require("ws")
 
 const wss = new WebSocket.Server({ port: 8080 })
 
-const supportedPairs = ["BTC-USD", "ETH-USD", "XRP-USD", "LTC-USD"]
+const supportedPairs = [
+  "BTC-USD",
+  "ETH-USD",
+  "XRP-USD",
+  "LTC-USD",
+  "SYSTEM",
+  "QUIT",
+]
 
-const commandPairs = ["SYSTEM", "QUIT"]
+// const commandPairs = ["SYSTEM", "QUIT"]
 let subscriptions = []
 let stopLogging = false
 
@@ -53,13 +60,21 @@ const statusMessage = () => {
   }
 }
 
+const addSubbed = ticker => {
+  if (subscriptions.includes(ticker)) {
+    console.log(`${ticker} has been already subbed, please unsub first`)
+    return
+  } else {
+    subscriptions.push(ticker)
+    console.log(`${ticker} has successfully been subbed`)
+  }
+}
+
 wss.on("connection", function connection(ws) {
   console.log("connected to localhost")
   ws.on("message", function incoming(message) {
     // read the message to get the data from client
     let readData = message.toString("utf8").toUpperCase()
-
-    console.log(readData)
 
     const [ticker, command] = readData.split(" ")
 
@@ -75,48 +90,61 @@ wss.on("connection", function connection(ws) {
     const client = new WebSocket("wss://ws-feed.exchange.coinbase.com")
 
     client.on("open", function open() {
-      // send the parameters to the third-party
-      // handleString(myArray[0], myArray[1])
-
-      if (ticker !== undefined && supportedPairs.includes(ticker)) {
+      // subscribe
+      if (
+        ticker !== undefined &&
+        supportedPairs.includes(ticker) &&
+        command === undefined
+      ) {
         let subMsg = JSON.stringify(subscribeMessage(ticker))
         // stopLogging = false
         console.log(subMsg)
-        client.send(subMsg)
-        subscriptions.push(ticker)
+        addSubbed(ticker)
         console.log(subscriptions)
+        console.log("subscribed ran")
+        client.send(subMsg)
       }
 
-      if (command !== undefined && command === "U") {
+      // unsubscribe
+      if (
+        command !== undefined &&
+        command === "U" &&
+        subscriptions.includes(ticker)
+      ) {
         console.log(JSON.stringify(unsubscribeMessage(ticker)))
         let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
         // stopLogging = true
         client.send(unsubMsg)
         subscriptions = subscriptions.filter(item => item !== ticker)
-        console.log("this is unsub pop", subscriptions)
+        console.log("unsub ran")
       }
 
       if (ticker !== undefined && ticker === "SYSTEM") {
         let statusMsg = JSON.stringify(statusMessage())
         client.send(statusMsg)
+        console.log("system ran")
       }
 
       if (ticker !== undefined && ticker === "QUIT") {
         client.close(1000, "Closing the connection")
         console.log("closing")
         wss.close()
+        subscriptions = subscriptions.filter(item => item !== ticker)
+        console.log("quit ran")
       }
     })
+
     client.on("message", function incoming(response) {
       let data = JSON.parse(response)
       // console.log(data)
       if (stopLogging) {
-        if (data.type === "subscriptions") {
-          console.log(data)
-          // ws.send(`Sucessfully unsubbed from ${}${data.type}`)
-        }
       }
 
+      if (data.type === "subscriptions") {
+        console.log(data.channels)
+
+        // ws.send(`Sucessfully unsubbed from ${}${data.type}`)
+      }
       if (data.type === "status") {
         console.log(data)
       }
@@ -130,27 +158,7 @@ wss.on("connection", function connection(ws) {
   })
 })
 
-wss.on("close", function () {
-  console.log("exiting")
-  process.exitCode = 1
-})
-
-// {
-//   "type":"ticker",
-//  "sequence":40171035134,
-//  "product_id":"ETH-USD",
-//  "price":"1188.83",
-//  "open_24h":"1209.59",
-//  "volume_24h":"266418.56949554",
-//  "low_24h":"1182.43",
-//  "high_24h":"1221.6",
-//  "volume_30d":"9015950.90516125",
-//  "best_bid":"1188.80",
-//  "best_bid_size":"0.25233945",
-//  "best_ask":"1188.92",
-//  "best_ask_size":"0.25234148",
-//  "side":"sell",
-//  "time":"2022-12-22T18:30:21.581204Z",
-// "trade_id":402764609,
-//  "last_size":"0.3"
-// }
+// wss.on("close", function () {
+//   console.log("exiting")
+//   process.exitCode = 1
+// })
