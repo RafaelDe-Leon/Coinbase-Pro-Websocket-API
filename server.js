@@ -87,9 +87,9 @@ wss.on("connection", function connection(ws) {
     // }
 
     // create a WebSocket client and connect to the coinbase's api
-    const client = new WebSocket("wss://ws-feed.exchange.coinbase.com")
+    const cbWebSocket = new WebSocket("wss://ws-feed.exchange.coinbase.com")
 
-    client.on("open", function open() {
+    cbWebSocket.on("open", function open() {
       // subscribe
       if (
         ticker !== undefined &&
@@ -102,7 +102,7 @@ wss.on("connection", function connection(ws) {
         addSubbed(ticker)
         console.log(subscriptions)
         console.log("subscribed ran")
-        client.send(subMsg)
+        cbWebSocket.send(subMsg)
         ws.send(`succesfully subscribed to ${ticker}`)
       }
 
@@ -115,7 +115,7 @@ wss.on("connection", function connection(ws) {
         console.log(JSON.stringify(unsubscribeMessage(ticker)))
         let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
         // stopLogging = true
-        client.send(unsubMsg)
+        cbWebSocket.send(unsubMsg)
         subscriptions = subscriptions.filter(item => item !== ticker)
         console.log("unsub ran")
         ws.send(`succesfully unsubbed from ${ticker}`)
@@ -123,12 +123,12 @@ wss.on("connection", function connection(ws) {
 
       if (ticker !== undefined && ticker === "SYSTEM") {
         let statusMsg = JSON.stringify(statusMessage())
-        client.send(statusMsg)
+        cbWebSocket.send(statusMsg)
         console.log("system ran")
       }
 
       if (ticker !== undefined && ticker === "QUIT") {
-        client.close(1000, "Closing the connection")
+        cbWebSocket.close(1000, "Closing the connection")
         console.log("closing")
         wss.close()
         subscriptions = subscriptions.filter(item => item !== ticker)
@@ -136,7 +136,7 @@ wss.on("connection", function connection(ws) {
       }
     })
 
-    client.on("message", function incoming(response) {
+    cbWebSocket.on("message", function incoming(response) {
       let data = JSON.parse(response)
       if (stopLogging) {
       }
