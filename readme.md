@@ -31,4 +31,4 @@ Example of a request: <code> ETH-USD </code>
 
 ## Packages Used
 
-- WS: Documentation can be found for WS (https://github.com/websockets/ws)
+- WS: Documentation can be found for WS https://github.com/websockets/ws
