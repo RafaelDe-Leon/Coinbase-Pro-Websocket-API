@@ -9,14 +9,9 @@ const WebSocket = require('ws')
 
 const wss = new WebSocket.Server({ port: 8080 })
 
-const supportedPairs = [
-  'BTC-USD',
-  'ETH-USD',
-  'XRP-USD',
-  'LTC-USD',
-  'SYSTEM',
-  'QUIT',
-]
+const supportedPairs = ['BTC-USD', 'ETH-USD', 'XRP-USD', 'LTC-USD']
+
+const supportedCommands = ['SYSTEM', 'QUIT']
 
 let subscriptions = []
 let matchViewArray = []
@@ -55,13 +50,13 @@ const unsubscribeMessage = ticker => {
   }
 }
 
-const statusMessage = () => {
-  return {
-    type: 'subscriptions',
-    product_ids: ['ETH-USD', 'BTC-USD'],
-    channels: [{ name: 'status' }],
-  }
-}
+// const statusMessage = () => {
+//   return {
+//     type: 'subscriptions',
+//     product_ids: ['ETH-USD', 'BTC-USD'],
+//     channels: [{ name: 'status' }],
+//   }
+// }
 
 const emptyAndAdd = (arr, element) => {
   arr.length = 0
@@ -75,12 +70,22 @@ wss.on('connection', function connection(ws, req) {
   connections[id] = ws
   console.log(`New connection with id ${id}`)
   ws.send(`New connection with id ${id}`)
-  ws.send('Please input one of these symbols to start ETH-USD, BTC-USD')
+  ws.send(
+    'Please input one of these symbols to start ETH-USD, BTC-USD, XRP-USD, LTC-USD'
+  )
   ws.on('message', function incoming(message) {
     // read the message to get the data from client
     let readData = message.toString('utf8').toUpperCase()
 
     const [ticker, command] = readData.split(' ')
+
+    // only accept these pairs from the list
+    if (
+      !supportedPairs.includes(ticker) &&
+      !supportedCommands.includes(ticker)
+    ) {
+      throw new Error(`${ticker} is not supported)`)
+    }
 
     const addSubbed = ticker => {
       if (subscriptions.includes(ticker)) {
@@ -92,11 +97,6 @@ wss.on('connection', function connection(ws, req) {
         console.log(`${ticker} has successfully been subbed`)
         ws.send(`${ticker} has successfully been subbed`)
       }
-    }
-
-    // only accept these pairs from the list
-    if (!supportedPairs.includes(ticker)) {
-      throw new Error(`${ticker} is not supported)`)
     }
 
     // create a WebSocket client and connect to the coinbase's api
@@ -114,6 +114,11 @@ wss.on('connection', function connection(ws, req) {
         if (subscriptions.includes(ticker)) {
           console.log(`Viewing ${ticker} prices`)
           ws.send(`Viewing ${ticker} prices`)
+        }
+
+        if (supportedCommands.includes(ticker)) {
+          supportedCommands.push(ticker)
+          console.log(supportedCommands)
         }
         matchesView = false
         systemLog = false
@@ -171,11 +176,11 @@ wss.on('connection', function connection(ws, req) {
       }
 
       if (ticker !== undefined && ticker === 'SYSTEM') {
-        let statusMsg = JSON.stringify(statusMessage())
+        // let statusMsg = JSON.stringify(statusMessage())
         subscriptionLog = false
         systemLog = true
-
-        cbWebSocket.send(statusMsg)
+        // run the variable with the json data to display in the console and user side
+        // cbWebSocket.send(statusMsg)
       }
 
       // sysmtem and <number>
@@ -220,8 +225,18 @@ wss.on('connection', function connection(ws, req) {
       }
 
       if (systemLog === true) {
-        console.log(data)
-        console.log(systemLog)
+        // console.log(latestSubscriptions.channels.map(e => e.name))
+        // console.log(latestSubscriptions.channels.map(e => e.product_ids))
+        console.log(`You are subscribed to ${subscriptions} at the moment`)
+        ws.send(`You are subscribed to ${subscriptions} at the moment`)
+        // ws.send(latestSubscriptions)
+        systemLog = false // disable system view
+        ws.send(
+          `Enabling Prices View after 10 seconds if no commands are given`
+        )
+        setTimeout(() => {
+          subscriptionLog = true // will resume subscriptionsLog in 5 seconds
+        }, 10000)
       }
 
       if (matchesView === true) {
