@@ -12,20 +12,22 @@ This project is a middleware between a user connected to localhost and the Coinb
 1. Clone the repository:
    <code>https://github.com/RafaelDe-Leon/Coinbase-Pro-Websocket-API.git</code>
 
-2. Install the dependencies: <code> npm install </code>
+2. Install the dependencies: <code>npm install</code>
 
 ## Usage
 
-To run the program run -> <code> node server.js </code>
+To run the program run: <code>node server.js</code>
 
 ### Available Commands
 
-- Symbols-USD (ETH, BTC, XRP, LTC) - Subscribes you to start seeing the price of the current crypto
+\*Replace Symbol with any these current supported symbols ETH, BTC, XRP, LTC.
+
+- Symbols-USD: Subscribes you to start seeing the price of the current crypto
 - Symbols-USD m: - this will show the symbol with more details to show timestamp, product name, trade size, price.
 - Symbol-USD u: Will unsubscribe to no longer see the price of a crypto
 - System Number: This will change the interval of the current crypto you are subscribed too.
 
-Example of a request: <code> ETH-USD </code>
+Example of a request: <code>ETH-USD</code>
 
 ![A Gif of How the application will run with the above example](https://i.imgur.com/5oO5Xqv.gif)
 
