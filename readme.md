@@ -20,5 +20,11 @@ To run the program run -> <code> node server.js </code>
 
 ### Available Commands
 
-- Symbols-USD (ETH, BTC, XRP, LTC) - Subscribes you to start seeing the price of the current symbol
--
+- Symbols-USD (ETH, BTC, XRP, LTC) - Subscribes you to start seeing the price of the current crypto
+- Symbols-USD m: - this will show the symbol with more details to show timestamp, product name, trade size, price.
+- Symbols u: Will unsubscribe to no longer see the price of a crypto
+- System: number: This will change the interval of the current crypto you are subscribed too.
+
+Example of a request: <code> ETH-USD </code>
+
+![A Gif of How the application will run with the above example](https://i.imgur.com/5oO5Xqv.gif)
