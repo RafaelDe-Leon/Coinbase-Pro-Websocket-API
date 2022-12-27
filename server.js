@@ -1,11 +1,5 @@
 const WebSocket = require('ws')
-
-// matches
-// ${coin-USD}: price view.
-// ${coin-USD}: matches view.
-// #{coin-USD} u: unsubscribe symbol.
-// system: system status of subscribed coins atm
-// system <number>: change refresh interval in milliseconds
+// const { setInterval, clearInterval, setTimeout } = require('timers')
 
 const wss = new WebSocket.Server({ port: 8080 })
 
@@ -15,48 +9,28 @@ const supportedCommands = ['SYSTEM', 'QUIT']
 
 let subscriptions = []
 let matchViewArray = []
+let savedVar
 
 let subscriptionLog = false
 let systemLog = false
 let matchesView = false
+let intervalLog = false
 
-const subscribeMessage = ticker => {
+const subscribeMessage = (ticker, level, channel) => {
   return {
     type: 'subscribe',
     product_ids: [ticker],
-    channels: [
-      'level2',
-      'heartbeat',
-      {
-        name: 'ticker',
-        product_ids: [ticker],
-      },
-    ],
+    channels: [level, channel],
   }
 }
 
-const unsubscribeMessage = ticker => {
+const unsubscribeMessage = (ticker, level, channel) => {
   return {
     type: 'unsubscribe',
     product_ids: [ticker],
-    channels: [
-      'level2',
-      'heartbeat',
-      {
-        name: 'ticker',
-        product_ids: [ticker],
-      },
-    ],
+    channels: [level, channel],
   }
 }
-
-// const statusMessage = () => {
-//   return {
-//     type: 'subscriptions',
-//     product_ids: ['ETH-USD', 'BTC-USD'],
-//     channels: [{ name: 'status' }],
-//   }
-// }
 
 const emptyAndAdd = (arr, element) => {
   arr.length = 0
@@ -87,6 +61,7 @@ wss.on('connection', function connection(ws, req) {
       throw new Error(`${ticker} is not supported)`)
     }
 
+    // if already subbed log out message if else add sub to array
     const addSubbed = ticker => {
       if (subscriptions.includes(ticker)) {
         console.log(`${ticker} has been already subbed, please unsub first`)
@@ -109,7 +84,9 @@ wss.on('connection', function connection(ws, req) {
         supportedPairs.includes(ticker) &&
         command === undefined
       ) {
-        let subMsg = JSON.stringify(subscribeMessage(ticker))
+        let subMsg = JSON.stringify(
+          subscribeMessage(ticker, 'level2', 'ticker')
+        )
 
         if (subscriptions.includes(ticker)) {
           console.log(`Viewing ${ticker} prices`)
@@ -123,27 +100,11 @@ wss.on('connection', function connection(ws, req) {
         matchesView = false
         systemLog = false
         subscriptionLog = true
+        intervalLog = false
         emptyAndAdd(matchViewArray) // empties matchArray
         addSubbed(ticker)
         cbWebSocket.send(subMsg)
       }
-
-      // trying to add another if statement to check if command = number
-      // else if (
-      //   ticker !== undefined &&
-      //   supportedPairs.includes(ticker) &&
-      //   command === '1'
-      // ) {
-      //   let subMsg = JSON.stringify(subscribeMessage(ticker, ''))
-
-      //   matchesView = false
-      //   systemLog = false
-      //   subscriptionLog = true
-      //   emptyAndAdd(matchViewArray) // empties matchArray
-      //   addSubbed(ticker)
-      //   cbWebSocket.send(subMsg)
-      //   ws.send(`succesfully subscribed to ${ticker}`)
-      // }
 
       if (
         command !== undefined &&
@@ -151,12 +112,23 @@ wss.on('connection', function connection(ws, req) {
         subscriptions.includes(ticker)
       ) {
         // unsubscribe
-        console.log(JSON.stringify(unsubscribeMessage(ticker)))
-        let unsubMsg = JSON.stringify(unsubscribeMessage(ticker))
+        let unsubMsg = JSON.stringify(
+          unsubscribeMessage(ticker, 'level2', 'ticker')
+        )
         matchesView = false
+        subscriptionLog = true
+        intervalLog = false
 
         cbWebSocket.send(unsubMsg)
         subscriptions = subscriptions.filter(item => item !== ticker)
+
+        // sends if subscription is empty
+        if (subscriptions.length <= 0) {
+          console.log('Please Subscribe to view prices')
+          ws.send(
+            'You are currently, not subscribed to any product. Please Subscribe to view prices'
+          )
+        }
 
         ws.send(`succesfully unsubbed from ${ticker}`)
       }
@@ -183,37 +155,41 @@ wss.on('connection', function connection(ws, req) {
         // cbWebSocket.send(statusMsg)
       }
 
-      // sysmtem and <number>
-      // if (ticker !== undefined && ticker === "SYSTEM" && command === ) {
-      //   let statusMsg = JSON.stringify(statusMessage())
-      //   subscriptionLog = false
-      //   systemLog = true
-
-      //   cbWebSocket.send(statusMsg)
-      // }
+      if (ticker !== undefined && ticker === 'SYSTEM' && command === '1') {
+        matchesView = false
+        systemLog = false
+        subscriptionLog = false
+        intervalLog = true
+      }
 
       if (ticker !== undefined && ticker === 'QUIT') {
-        // cbWebSocket.close(1000, "Closing the connection")
+        ws.send('Program Closed')
         console.log('closing')
         connections[id].close()
         delete connections[id]
-        ws.send('Programmed Closed')
-        ws.send(
-          'To receive new data, Please input the pair you want to connect'
-        )
 
         if (Object.keys(connections).length === 0) {
-          console.log('Closing server in 5 secs')
+          console.log('Closing server in 3 secs')
           // Close the server after 5 seconds
           setTimeout(() => {
             process.exit() // shuts down node if no connections
-          }, 5000)
+          }, 3000)
         }
       }
     })
 
     cbWebSocket.on('message', function incoming(response) {
       let data = JSON.parse(response)
+
+      if (intervalLog && data.type === 'ticker') {
+        const interval = setInterval(() => {
+          console.log(data.price)
+          ws.send(`Symbol: ${data.product_id} Current Price: ${data.price}`)
+          if (intervalLog === false) {
+            clearInterval(interval)
+          }
+        }, 5000)
+      }
 
       if (
         subscriptions.includes(ticker) &&
@@ -240,12 +216,7 @@ wss.on('connection', function connection(ws, req) {
       }
 
       if (matchesView === true) {
-        if (data.type === 'l2update') {
-          return
-        } else if (data.type === 'hearbeat') {
-          return
-          // ws.send(data.product_id, data.price)
-        } else if (matchViewArray.includes(ticker) && data.type == 'ticker') {
+        if (matchViewArray.includes(ticker) && data.type == 'ticker') {
           console.log(data.time, data.product_id, data.last_size, data.price)
           ws.send(
             `Date and Time: ${data.time} 
@@ -253,6 +224,8 @@ wss.on('connection', function connection(ws, req) {
             Last-Trade: ${data.last_size}
             Current Price: ${data.price}`
           )
+        } else {
+          return
         }
       }
     })
@@ -260,5 +233,9 @@ wss.on('connection', function connection(ws, req) {
     cbWebSocket.on('close', () => {
       return
     })
+  })
+
+  ws.on('error', err => {
+    console.error(`An error occured: ${err.message}`)
   })
 })
