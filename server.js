@@ -7,14 +7,6 @@ const supportedPairs = ['BTC-USD', 'ETH-USD', 'XRP-USD', 'LTC-USD']
 
 const supportedCommands = ['SYSTEM', 'QUIT']
 
-let subscriptions = []
-let matchViewArray = []
-
-let subscriptionLog = false
-let systemLog = false
-let matchesView = false
-let intervalLog = false
-
 const subscribeMessage = (type, ticker, level, channel) => {
   return {
     type: type,
@@ -34,11 +26,20 @@ wss.on('connection', function connection(ws, req) {
   const id = req.headers['sec-websocket-key'] // get the key from header and assign it to id
   connections[id] = ws
   console.log(`New connection with id ${id}`)
-  ws.send(`New connection with id ${id}`)
-  ws.send(
+  connections[id].send(`New connection with id ${id}`)
+  connections[id].send(
     'Please input one of these symbols to start ETH-USD, BTC-USD, XRP-USD, LTC-USD'
   )
-  ws.on('message', function incoming(message) {
+
+  let subscriptions = []
+  let matchViewArray = []
+
+  let subscriptionLog = false
+  let systemLog = false
+  let matchesView = false
+  let intervalLog = false
+
+  connections[id].on('message', function incoming(message) {
     // read the message to get the data from client
     let readData = message.toString('utf8').toUpperCase()
 
@@ -56,12 +57,14 @@ wss.on('connection', function connection(ws, req) {
     const addSubbed = ticker => {
       if (subscriptions.includes(ticker)) {
         console.log(`${ticker} has been already subbed, please unsub first`)
-        ws.send(`${ticker} has been already subbed, please unsub first`)
+        connections[id].send(
+          `${ticker} has been already subbed, please unsub first`
+        )
         return
       } else {
         subscriptions.push(ticker)
         console.log(`${ticker} has successfully been subbed`)
-        ws.send(`${ticker} has successfully been subbed`)
+        connections[id].send(`${ticker} has successfully been subbed`)
       }
     }
 
@@ -81,14 +84,14 @@ wss.on('connection', function connection(ws, req) {
 
         if (subscriptions.includes(ticker)) {
           console.log(`Viewing ${ticker} prices`)
-          ws.send(`Viewing ${ticker} prices`)
+          connections[id].send(`Viewing ${ticker} prices`)
         }
 
         if (supportedCommands.includes(ticker)) {
           supportedCommands.push(ticker)
           console.log(supportedCommands)
         }
-        matchesView = false
+        matchView = false
         systemLog = false
         subscriptionLog = true
         intervalLog = false
@@ -116,12 +119,12 @@ wss.on('connection', function connection(ws, req) {
         // sends if subscription is empty
         if (subscriptions.length <= 0) {
           console.log('Please Subscribe to view prices')
-          ws.send(
+          connections[id].send(
             'You are currently, not subscribed to any product. Please Subscribe to view prices'
           )
         }
 
-        ws.send(`succesfully unsubbed from ${ticker}`)
+        connections[id].send(`succesfully unsubbed from ${ticker}`)
       }
 
       // matches view
@@ -130,7 +133,7 @@ wss.on('connection', function connection(ws, req) {
         command === 'M' &&
         subscriptions.includes(ticker)
       ) {
-        ws.send(`switched to view ${ticker} in details`)
+        connections[id].send(`switched to view ${ticker} in details`)
         subscriptionLog = false
         systemLog = false
         matchesView = true
@@ -156,7 +159,7 @@ wss.on('connection', function connection(ws, req) {
       if (ticker !== undefined && ticker === 'QUIT') {
         ws.send('Program Closed')
         console.log('closing')
-        connections[id].close()
+        ws.close()
         delete connections[id]
 
         if (Object.keys(connections).length === 0) {
@@ -175,7 +178,9 @@ wss.on('connection', function connection(ws, req) {
       if (intervalLog && data.type === 'ticker') {
         const interval = setInterval(() => {
           console.log(data.price)
-          ws.send(`Symbol: ${data.product_id} Current Price: ${data.price}`)
+          connections[id].send(
+            `Symbol: ${data.product_id} Current Price: ${data.price}`
+          )
           if (intervalLog === false) {
             clearInterval(interval)
           }
@@ -188,17 +193,21 @@ wss.on('connection', function connection(ws, req) {
         data.type === 'ticker'
       ) {
         console.log(data.product_id, data.price)
-        ws.send(`Symbol: ${data.product_id} Current Price: ${data.price}`)
+        connections[id].send(
+          `Symbol: ${data.product_id} Current Price: ${data.price}`
+        )
       }
 
       if (systemLog === true) {
         // console.log(latestSubscriptions.channels.map(e => e.name))
         // console.log(latestSubscriptions.channels.map(e => e.product_ids))
         console.log(`You are subscribed to ${subscriptions} at the moment`)
-        ws.send(`You are subscribed to ${subscriptions} at the moment`)
+        connections[id].send(
+          `You are subscribed to ${subscriptions} at the moment`
+        )
         // ws.send(latestSubscriptions)
         systemLog = false // disable system view
-        ws.send(
+        connections[id].send(
           `Enabling Prices View after 10 seconds if no commands are given`
         )
         setTimeout(() => {
@@ -209,7 +218,7 @@ wss.on('connection', function connection(ws, req) {
       if (matchesView === true) {
         if (matchViewArray.includes(ticker) && data.type == 'ticker') {
           console.log(data.time, data.product_id, data.last_size, data.price)
-          ws.send(
+          connections[id].send(
             `Date and Time: ${data.time} 
             Symbol: ${data.product_id} 
             Last-Trade: ${data.last_size}
@@ -226,7 +235,7 @@ wss.on('connection', function connection(ws, req) {
     })
   })
 
-  ws.on('error', err => {
+  connections[id].on('error', err => {
     console.error(`An error occured: ${err.message}`)
   })
 })
