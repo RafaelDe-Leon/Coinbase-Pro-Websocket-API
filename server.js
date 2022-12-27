@@ -9,7 +9,6 @@ const supportedCommands = ['SYSTEM', 'QUIT']
 
 let subscriptions = []
 let matchViewArray = []
-let savedVar
 
 let subscriptionLog = false
 let systemLog = false
