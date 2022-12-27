@@ -24,7 +24,7 @@ To run the program run: <code>node server.js</code>
 
 - quit: this will quit the program
 - Symbols-USD: subscribes you to start seeing the price of the current crypto
-- Symbols-USD m: - this will show the symbol with more details to show timestamp, product name, trade size, price.
+- Symbols-USD m: this will show the symbol with more details to show timestamp, product name, trade size, price.
 - Symbol-USD u: will unsubscribe to no longer see the price of a crypto
 - System Number: this will change the interval of the current crypto you are subscribed too. (NYI)
 
