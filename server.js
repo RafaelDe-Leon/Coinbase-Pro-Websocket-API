@@ -4,7 +4,6 @@ const WebSocket = require('ws')
 const wss = new WebSocket.Server({ port: 8080 })
 
 const supportedPairs = ['BTC-USD', 'ETH-USD', 'XRP-USD', 'LTC-USD']
-
 const supportedCommands = ['SYSTEM', 'QUIT']
 
 const subscribeMessage = (type, ticker, level, channel) => {
@@ -31,21 +30,24 @@ wss.on('connection', function connection(ws, req) {
     'Please input one of these symbols to start ETH-USD, BTC-USD, XRP-USD, LTC-USD'
   )
 
+  // arrays to keep track
   let subscriptions = []
   let matchViewArray = []
 
+  // view changes variables
   let subscriptionLog = false
   let systemLog = false
   let matchesView = false
   let intervalLog = false
 
+  // when message is receive from user
   connections[id].on('message', function incoming(message) {
     // read the message to get the data from client
     let readData = message.toString('utf8').toUpperCase()
 
     const [ticker, command] = readData.split(' ')
 
-    // only accept these pairs from the list
+    // only accept these pairs from the list supportedPairs
     if (
       !supportedPairs.includes(ticker) &&
       !supportedCommands.includes(ticker)
@@ -100,12 +102,12 @@ wss.on('connection', function connection(ws, req) {
         cbWebSocket.send(subMsg)
       }
 
+      // unsubscribe
       if (
         command !== undefined &&
         command === 'U' &&
         subscriptions.includes(ticker)
       ) {
-        // unsubscribe
         let unsubMsg = JSON.stringify(
           subscribeMessage('unsubscribe', ticker, 'level2', 'ticker')
         )
@@ -138,17 +140,18 @@ wss.on('connection', function connection(ws, req) {
         systemLog = false
         matchesView = true
 
+        // empty the matchViewArray and then add current ticker
         emptyAndAdd(matchViewArray, ticker)
       }
 
+      // show which are subscribed at the moment
       if (ticker !== undefined && ticker === 'SYSTEM') {
         // let statusMsg = JSON.stringify(statusMessage())
         subscriptionLog = false
         systemLog = true
-        // run the variable with the json data to display in the console and user side
-        // cbWebSocket.send(statusMsg)
       }
 
+      // change interval - NYI
       if (ticker !== undefined && ticker === 'SYSTEM' && command === '1') {
         matchesView = false
         systemLog = false
@@ -156,12 +159,14 @@ wss.on('connection', function connection(ws, req) {
         intervalLog = true
       }
 
+      // close the program if quit request is passed
       if (ticker !== undefined && ticker === 'QUIT') {
         ws.send('Program Closed')
         console.log('closing')
         ws.close()
         delete connections[id]
 
+        // if no connections are available close node server
         if (Object.keys(connections).length === 0) {
           console.log('Closing server in 3 secs')
           // Close the server after 5 seconds
@@ -172,9 +177,11 @@ wss.on('connection', function connection(ws, req) {
       }
     })
 
+    // when coinbase send message back to our server
     cbWebSocket.on('message', function incoming(response) {
       let data = JSON.parse(response)
 
+      // interval change
       if (intervalLog && data.type === 'ticker') {
         const interval = setInterval(() => {
           console.log(data.price)
@@ -187,6 +194,7 @@ wss.on('connection', function connection(ws, req) {
         }, 5000)
       }
 
+      // subscribe message back to user showing prices
       if (
         subscriptions.includes(ticker) &&
         subscriptionLog === true &&
@@ -198,14 +206,12 @@ wss.on('connection', function connection(ws, req) {
         )
       }
 
+      // let user know which one they are subscribed to
       if (systemLog === true) {
-        // console.log(latestSubscriptions.channels.map(e => e.name))
-        // console.log(latestSubscriptions.channels.map(e => e.product_ids))
         console.log(`You are subscribed to ${subscriptions} at the moment`)
         connections[id].send(
           `You are subscribed to ${subscriptions} at the moment`
         )
-        // ws.send(latestSubscriptions)
         systemLog = false // disable system view
         connections[id].send(
           `Enabling Prices View after 10 seconds if no commands are given`
@@ -215,6 +221,7 @@ wss.on('connection', function connection(ws, req) {
         }, 10000)
       }
 
+      // Show detail if matchView is true
       if (matchesView === true) {
         if (matchViewArray.includes(ticker) && data.type == 'ticker') {
           console.log(data.time, data.product_id, data.last_size, data.price)
