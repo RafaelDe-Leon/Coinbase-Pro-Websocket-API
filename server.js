@@ -16,17 +16,9 @@ let systemLog = false
 let matchesView = false
 let intervalLog = false
 
-const subscribeMessage = (ticker, level, channel) => {
+const subscribeMessage = (type, ticker, level, channel) => {
   return {
-    type: 'subscribe',
-    product_ids: [ticker],
-    channels: [level, channel],
-  }
-}
-
-const unsubscribeMessage = (ticker, level, channel) => {
-  return {
-    type: 'unsubscribe',
+    type: type,
     product_ids: [ticker],
     channels: [level, channel],
   }
@@ -85,7 +77,7 @@ wss.on('connection', function connection(ws, req) {
         command === undefined
       ) {
         let subMsg = JSON.stringify(
-          subscribeMessage(ticker, 'level2', 'ticker')
+          subscribeMessage('subscribe', ticker, 'level2', 'ticker')
         )
 
         if (subscriptions.includes(ticker)) {
@@ -113,7 +105,7 @@ wss.on('connection', function connection(ws, req) {
       ) {
         // unsubscribe
         let unsubMsg = JSON.stringify(
-          unsubscribeMessage(ticker, 'level2', 'ticker')
+          subscribeMessage('unsubscribe', ticker, 'level2', 'ticker')
         )
         matchesView = false
         subscriptionLog = true
