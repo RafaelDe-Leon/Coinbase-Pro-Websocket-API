@@ -201,9 +201,7 @@ wss.on('connection', function connection(ws, req) {
         data.type === 'ticker'
       ) {
         console.log(data.product_id, data.price)
-        connections[id].send(
-          `Symbol: ${data.product_id} Current Price: ${data.price}`
-        )
+        ws.send(`Symbol: ${data.product_id} Current Price: ${data.price}`)
       }
 
       // let user know which one they are subscribed to
