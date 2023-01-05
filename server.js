@@ -223,7 +223,7 @@ wss.on('connection', function connection(ws, req) {
       if (matchesView === true) {
         if (matchViewArray.includes(ticker) && data.type == 'ticker') {
           console.log(data.time, data.product_id, data.last_size, data.price)
-          connections[id].send(
+          ws.send(
             `Date and Time: ${data.time} 
             Symbol: ${data.product_id} 
             Last-Trade: ${data.last_size}
